@@ -3,19 +3,16 @@
 #include "vector.h"
 
 
+void f() {
+	Vector <int>v1(12);
+}
+
 
 int main() {
-	
-	Vector v1(12);
-	Vector v2(v1);
-	Vector v3(std::move(v1));
+	Vector <int>v(5);
+	Vector <int>vec(v);
+	Vector <int>v2(std::move(v));
 
-	Vector vv1(5);
-	Vector vv2 = vv1;
-	Vector vv3 = std::move(vv1);
-
-	vv3[1] = 1;
-	int x = vv3[1];
-
+	vec.push_back();
 	return 0;
 }

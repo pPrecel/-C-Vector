@@ -1,6 +1,5 @@
-#pragma once
-#include<iostream>
-
+#ifndef _VECTOR_H
+#define _VECTOR_H
 
 //Header
 template <class dataType>
@@ -8,19 +7,19 @@ class Vector {
 private:
 	//Main types
 	dataType *data;
-	int length;
-	int curPos;
+	unsigned length;
 
 	//Private methods
 	dataType* alloc(const int& len);
 	dataType* expand_data(dataType* myData, const int& myDataLen, const int& howMany);
-	void fill_data(dataType* myData, const int& startPos, const int& finalPos, dataType arg);
-	dataType* copy_data(dataType* oldData, dataType* newData, const int* len, const int& startPos = 0);
+	void fill_data(dataType* myData, const int& startPos, const int& finalPos, dataType arg = 0);
+	dataType* copy_data(dataType* oldData, dataType* newData, const int& len, const int& startPos = 0);
+	void delete_if(dataType* myData);
 
 public:
 	//Constructors and destructor
 	Vector();
-	Vector(const int tmp);
+	Vector(const unsigned& tmp);
 	Vector(const Vector& othVec);
 	Vector(Vector&& othVec);
 	~Vector();
@@ -28,33 +27,81 @@ public:
 	//Operators
 	Vector& operator=(const Vector& othVec);
 	Vector& operator=(Vector&& othVec);
-	dataType operator[](const int& iter);
+	dataType& operator[](const unsigned& iter) const;
 
 	//Methods
-	dataType at(const int& iter);
+	dataType at(const int& iter) const;
 	bool push_back(const dataType& newElem);
 	bool reserve(const int& howMany);
 	bool resive(const int& howMany);
-	bool inrest(const int& which);
+	int capacity() const;
+	bool insert(const int& which, const dataType& arg);
 	bool erase(const int& which);
 
+	//Iterator class
+	class it : public std::iterator<std::output_iterator_tag, dataType> {
+	private:
+		size_t curPos = 0;
+		Vector& container;
+	public:
+		it(Vector& con, size_t curP = 0) :container{ con }, curPos{ curP } {
+		}
+		dataType& operator*() const {
+			return container[curPos];
+		}
+		it& operator++() {
+			curPos++;
+			return *this;
+		}
+		it operator++(int) {
+			curPos++;
+			return *this;
+		}
+		it& operator--() {
+			curPos--;
+			return *this;
+		}
+		it operator--(int) {
+			curPos--;
+			return *this;
+		}
+		bool operator==(const it & iterClass) const {
+			return curPos == iterClass.curPos;
+		}
+		bool operator!=(const it & iterClass) const {
+			return curPos != iterClass.curPos;
+		}
+	};
 
-	//Tmp things
-	friend int main();
+	//methods with it mechanics
+	it begin() {
+		return it(*this, 0);
+	}
+	it end() {
+		return it(*this, length);
+	}
+	template <typename predicate>
+	it find_if(predicate pre) {
+		iterator first = begin();
+		iterator last = end();
+		while (first != last) {
+			if (pre(*first)) return first;
+			++first;
+		}
+		return it(Vector<void>NULLptr(-1));
+	}
 };
 
-	
 //Constructors and destructor
 
 template <class dataType>
-Vector<dataType>::Vector() : length{ 0 }, data{ nullptr }, curPos{ 0 } {
+Vector<dataType>::Vector() : length{ 0 }, data{ nullptr } {
 }
 
 template <class dataType>
-Vector<dataType>::Vector(const int tmp) : length{ tmp }, data{ alloc(tmp) }, curPos{ 0 } {
+Vector<dataType>::Vector(const unsigned& tmp) : length{ tmp }, data{ alloc(tmp) } {
 	if (tmp < 1 || data == nullptr) {
-		std::cout << "FATAL ERROR! CLASS VECTOR CANT CREATE NEW ELEMENT! BAD INPUT DATA!" << std::endl;
-		length = NULL; curPos = NULL;
+		length = NULL;
 	}
 	else {
 		for (int i = 0; i < tmp; i++) data[i] = 0;
@@ -62,44 +109,40 @@ Vector<dataType>::Vector(const int tmp) : length{ tmp }, data{ alloc(tmp) }, cur
 }
 
 template <class dataType>
-Vector<dataType>::Vector(const Vector& othVec) : data{ alloc(othVec.length) }, length{ othVec.length }, curPos{ othVec.curPos } {
+Vector<dataType>::Vector(const Vector& othVec) : data{ alloc(othVec.length) }, length{ othVec.length } {
 	if (data == nullptr) {
-		std::cout << "FATAL ERROR! CLASS VECTOR CANT CREATE NEW ELEMENT!" << std::endl;
-		length = NULL; curPos = NULL;
+		length = NULL;
 	}
 	else {
-		for (int i = 0 - othVec.curPos; i < othVec.length - othVec.curPos; i++) {
+		for (int i = 0; i < othVec.length; i++) {
 			data[i] = othVec.data[i];
 		}
 	}
 }
 
 template <class dataType>
-Vector<dataType>::Vector(Vector&& othVec) : length{ othVec.length }, curPos{ othVec.curPos }, data{ othVec.data } {
+Vector<dataType>::Vector(Vector&& othVec) : length{ othVec.length }, data{ othVec.data } {
 	othVec.data = nullptr;
 	othVec.length = NULL;
-	othVec.curPos = NULL;
 }
 
 template <class dataType>
 Vector<dataType>::~Vector() {
 	if (data != nullptr) {
-		delete[] data;
+		delete_if(data);
 	}
 	length = NULL;
-	curPos = NULL;
 }
 
 
 //Public operators
 template<class dataType>
-Vector<dataType> & Vector<dataType>::operator=(const Vector & othVec){
+inline Vector<dataType> & Vector<dataType>::operator=(const Vector & othVec) {
 	data = alloc(othVec.length);
 	if (data != nullptr) {
 		length = othVec.length;
-		curPos = othVec.curPos;
 
-		for (int i = 0 - othVec.curPos; i < othVec.length - othVec.curPos; i++) {
+		for (int i = 0; i < othVec.length; i++) {
 			data[i] = othVec.data[i];
 		}
 	}
@@ -107,12 +150,10 @@ Vector<dataType> & Vector<dataType>::operator=(const Vector & othVec){
 }
 
 template<class dataType>
-Vector<dataType> & Vector<dataType>::operator=(Vector && othVec){
+inline Vector<dataType> & Vector<dataType>::operator=(Vector && othVec) {
 	data = othVec.data;
 	length = othVec.length;
-	curPos = othVec.curPos;
 
-	othVec.curPos = NULL;
 	othVec.length = NULL;
 	othVec.data = nullptr;
 
@@ -120,27 +161,24 @@ Vector<dataType> & Vector<dataType>::operator=(Vector && othVec){
 }
 
 template<class dataType>
-dataType Vector<dataType>::operator[](const int& iter) {
-	if (iter >= 0 - curPos && iter < length - curPos)
-		return data[iter];
-	return NULL;
+inline dataType& Vector<dataType>::operator[](const unsigned& iter) const {
+	return data[iter];
 }
 
 
 //Public methods
 template<class dataType>
-dataType Vector<dataType>::at(const int& iter) {
-	if (iter >= 0 - curPos && iter < length - curPos)
-		return data[iter];
-	return NULL;
+inline dataType Vector<dataType>::at(const int& iter) const {
+	return data[iter];
 }
 
 template<class dataType>
-bool Vector<dataType>::push_back(const dataType& newElem) {
-	dataType* newData;
-	if (!(newData = alloc(length+1)))
+inline bool Vector<dataType>::push_back(const dataType& newElem) {
+	dataType* newData = nullptr;
+	if (!(newData = expand_data(data, length, 1)))
 		return false;
-	delete[]data;
+	length++;
+	delete_if(data);
 	data = newData;
 	data[length - 1] = newElem;
 
@@ -148,36 +186,75 @@ bool Vector<dataType>::push_back(const dataType& newElem) {
 }
 
 template<class dataType>
-bool Vector<dataType>::reserve(const int & howMany){
+inline bool Vector<dataType>::reserve(const int & howMany) {
 	dataType* newData;
-	if (!(newData = alloc(length + howMany)))
+	if (!(newData = expand_data(data, length, howMany)))
 		return false;
 	length += howMany;
-
-	for (int i = 0; i < length; i++)
-		newData[i] = data[i - curPos];
-
-	delete[]data;
+	delete_if(data);
 	data = newData;
 
 	return true;
 }
 
+template<class dataType>
+inline bool Vector<dataType>::resive(const int & howMany) {
+	if (!(reserve(howMany)))
+		return false;
+	fill_data(data, length - howMany, length - 1);
+	return true;
+}
+
+template<class dataType>
+inline int Vector<dataType>::capacity() const {
+	return (sizeof(dataType)*length + sizeof(length));
+}
+
+template<class dataType>
+inline bool Vector<dataType>::insert(const int & which, const dataType & arg)
+{
+	dataType* newData = nullptr;
+	if (!(newData = alloc(length + 1)) || which < 0 || which > length - 1)
+		return false;
+	copy_data(data, newData, which - 1);
+	copy_data(data, newData, length - 1, which + 1);
+	newData[which] = arg;
+	length++;
+
+	delete_if(data);
+	data = newData;
+	return true;
+}
+
+template<class dataType>
+inline bool Vector<dataType>::erase(const int & which) {
+	dataType* newData;
+	if (!(newData = alloc(length - 1)) || which < 0 || which > length - 1)
+		return false;
+	copy_data(data, newData, which - 1);
+	copy_data(data + 1, newData, length - 1, which);
+	length--;
+
+	delete_if(data);
+	data = newData;
+	return false;
+}
 
 //Private methods
 template<class dataType>
-dataType* Vector<dataType>::alloc(const int& len) {
+inline dataType* Vector<dataType>::alloc(const int& len) {
 	dataType* newData;
 	try {
 		newData = new dataType[len];
 	}
 	catch (std::bad_alloc b_a) {
+		newData = nullptr;
 	}
 	return newData;
 }
 
 template<class dataType>
-inline dataType * Vector<dataType>::expand_data(dataType * myData, const int & myDataLen, const int & howMany){
+inline dataType * Vector<dataType>::expand_data(dataType * myData, const int & myDataLen, const int & howMany) {
 	dataType* newData;
 	if (!(newData = alloc(howMany + myDataLen))) return NULL;
 	copy_data(myData, newData, myDataLen);
@@ -186,14 +263,22 @@ inline dataType * Vector<dataType>::expand_data(dataType * myData, const int & m
 }
 
 template<class dataType>
-inline void Vector<dataType>::fill_data(dataType* myData, const int & startPos, const int & finalPos, dataType arg){
+inline void Vector<dataType>::fill_data(dataType* myData, const int & startPos, const int & finalPos, dataType arg = 0) {
 	for (int i = startPos; i <= finalPos; i++)
 		myData[i] = arg;
 }
 
 template<class dataType>
-inline dataType * Vector<dataType>::copy_data(dataType * oldData, dataType * newData, const int * finalPos, const int& startPos = 0)
-{
-	for (int i = startPos; i <= finalPos; i++) newData[i] = oldData[i];
+inline dataType * Vector<dataType>::copy_data(dataType * oldData, dataType * newData, const int& finalPos, const int& startPos = 0) {
+	for (int i = startPos; i <= finalPos; i++)
+		newData[i] = oldData[i];
 	return newData;
 }
+
+template<class dataType>
+inline void Vector<dataType>::delete_if(dataType* myData) {
+	if (myData)
+		delete[] myData;
+}
+
+#endif	

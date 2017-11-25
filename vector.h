@@ -1,5 +1,6 @@
 #ifndef _VECTOR_H
 #define _VECTOR_H
+#include <xutility>
 
 //Header
 template <class dataType>
@@ -39,7 +40,7 @@ public:
 	bool erase(const int& which);
 
 	//Iterator class
-	class it : public std::iterator<std::output_iterator_tag, dataType> {
+	class it{
 	private:
 		size_t curPos = 0;
 		Vector& container;
@@ -82,8 +83,8 @@ public:
 	}
 	template <typename predicate>
 	it find_if(predicate pre) {
-		iterator first = begin();
-		iterator last = end();
+		it first = begin();
+		it last = end();
 		while (first != last) {
 			if (pre(*first)) return first;
 			++first;

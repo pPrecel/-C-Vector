@@ -86,10 +86,11 @@ public:
 		it first = begin();
 		it last = end();
 		while (first != last) {
-			if (pre(*first)) return first;
+			if (predicate(*first) == pre) return first;
 			++first;
 		}
-		return it(Vector<void>NULLptr(-1));
+		Vector<int>NULLptr(-1);
+		return it(NULLptr);
 	}
 };
 

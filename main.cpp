@@ -70,5 +70,11 @@ int main() {
 	for (Vector<int>::it zx(b1.begin()); zx != b1.end(); zx++) {
 		std::cout << *zx << std::endl;
 	}
+
+	Vector<int>::it fi(b1.find_if(5));
+	std::cout << *fi;
+
+	Vector<int>::it fil(b1.find_if(666));
+
 	return 0;
 }
